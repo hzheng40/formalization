@@ -1,0 +1,28 @@
+# default config for everything
+
+batch_size: 128
+n_vocab: 12000
+epochs: 121
+n_hidden_G: 512
+n_layers_G: 2
+n_hidden_E: 512
+n_layers_E: 1
+n_z: 100
+word_dropout: 0.5
+rec_coef: 7
+lr: 0.0001
+gpu_device: 1
+n_highway_layers: 2
+
+unk_token: '<unk>'
+pad_token: '<pad>'
+start_token: '<sos>'
+end_token: '<eos>'
+
+# seeding
+seed: 12345
+
+# pretrained embedding, make sure these three match
+n_embed: 300
+vector: '840B'
+vocab_vector: 'glove.840B.300d'

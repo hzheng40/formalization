@@ -24,5 +24,5 @@ seed: 12345
 
 # pretrained embedding, make sure these three match
 n_embed: 300
-vector: '840B'
-vocab_vector: 'glove.840B.300d'
+vector: '6B'
+vocab_vector: 'glove.6B.300d'

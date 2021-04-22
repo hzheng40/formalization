@@ -22,7 +22,7 @@ class Highway(nn.Module):
     def forward(self, x):
         for layer in range(self.n_layers):
             # compute percentage of non linear information to be allowed for each element in x
-            gate = F.sigmoid(self.gate[layer](x))
+            gate = torch.sigmoid(self.gate[layer](x))
             # compute nonlinear info
             non_linear = F.relu(self.non_linear[layer](x))
             # compute linear info
@@ -33,16 +33,16 @@ class Highway(nn.Module):
 
 # encoder
 class Encoder(nn.Module):
-    def __init__(self, config)
-    super(Encoder, self).__init__()
-    self.highway = Highway(config)
-    self.n_hidden_E = config.n_hidden_E
-    self.n_layers_E = config.n_layers_E
-    self.lstm = nn.LSTM(input_size=config.n_embed,
-                        hidden_size=config.n_hidden_E,
-                        num_layers=config.n_layers_E,
-                        batch_first=True,
-                        bidirectional=True)
+    def __init__(self, config):
+        super(Encoder, self).__init__()
+        self.highway = Highway(config)
+        self.n_hidden_E = config.n_hidden_E
+        self.n_layers_E = config.n_layers_E
+        self.lstm = nn.LSTM(input_size=config.n_embed,
+                            hidden_size=config.n_hidden_E,
+                            num_layers=config.n_layers_E,
+                            batch_first=True,
+                            bidirectional=True)
 
     def init_hidden(self, batch_size):
         h_0 = torch.zeros(2*self.n_layers_E, batch_size, self.n_hidden_E)
@@ -70,8 +70,8 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.n_hidden_G = config.n_hidden_G
         self.n_layers_G = config.n_layers_G
-        self.n_z = confg.n_z
-        self.lstm = nn.LSTM(input_size=config.n_embed+opt.n_z,
+        self.n_z = config.n_z
+        self.lstm = nn.LSTM(input_size=config.n_embed+config.n_z,
                             hidden_size=config.n_hidden_G,
                             num_layers=config.n_layers_G,
                             batch_first=True)
@@ -105,9 +105,9 @@ class Generator(nn.Module):
 
 # full vae
 class VAE(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, pretrained_embedding):
         super(VAE, self).__init__()
-        self.embedding = nn.Embedding(config.n_vocab, config.n_embed)
+        self.embedding = nn.Embedding.from_pretrained(pretrained_embedding.vectors)
         self.encoder = Encoder(config)
         self.hidden_to_mu = nn.Linear(2*config.n_hidden_E, config.n_z)
         self.hidden_to_logvar = nn.Linear(2*config.n_hidden_G, config.n_z)
@@ -138,5 +138,5 @@ class VAE(nn.Module):
 
         # embeddings for generator input
         G_inp = self.embedding(G_inp)
-        logit, G_hidden = self.Generator(G_inp, z, G_hidden)
+        logit, G_hidden = self.generator(G_inp, z, G_hidden)
         return logit, G_hidden, kld

@@ -105,9 +105,11 @@ class Generator(nn.Module):
 
 # full vae
 class VAE(nn.Module):
-    def __init__(self, config, pretrained_embedding):
+    # def __init__(self, config, pretrained_embedding):
+    def __init__(self, config):
         super(VAE, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(pretrained_embedding.vectors)
+        # self.embedding = nn.Embedding.from_pretrained(pretrained_embedding.vectors)
+        self.embedding = nn.Embedding(config.n_vocab, config.n_embed)
         self.encoder = Encoder(config)
         self.hidden_to_mu = nn.Linear(2*config.n_hidden_E, config.n_z)
         self.hidden_to_logvar = nn.Linear(2*config.n_hidden_G, config.n_z)
@@ -140,3 +142,15 @@ class VAE(nn.Module):
         G_inp = self.embedding(G_inp)
         logit, G_hidden = self.generator(G_inp, z, G_hidden)
         return logit, G_hidden, kld
+
+    def encode(self, x):
+        # TODO: wtf
+        batch_size, n_seq = x.size()
+        x = self.embedding(x)
+        E_hidden = self.encoder(x)
+        mu = self.hidden_to_mu(E_hidden)
+        logvar = self.hidden_to_logvar(E_hidden)
+        z = on_cuda(torch.randn([x.size()[0], self.n_z]))
+        # z = mu + z * torch.exp(0.5*logvar)
+        z = mu
+        return z

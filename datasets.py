@@ -1,5 +1,5 @@
 import torch
-from torchtext.datasets import PennTreebank
+from torchtext.datasets import PennTreebank, WikiText103, WikiText2
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import Vocab
 from collections import Counter
@@ -20,7 +20,8 @@ def load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_c
     for line_valid in valid_iter:
         counter.update(tokenizer(line_valid))
     vocab = Vocab(counter,
-                  min_freq=10,
+                  # min_freq=10,
+                  max_size=conf.n_vocab - 4,
                   specials=(conf.unk_token,
                             conf.pad_token,
                             conf.start_token,
@@ -46,6 +47,14 @@ def load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_c
     valid_dataloader = DataLoader(list(valid_iter_copy), batch_size=conf.batch_size, shuffle=True, collate_fn=collate_batch)
     return train_dataloader, test_dataloader, valid_dataloader, vocab
 
+def str_to_tensor(s, vocab, conf):
+    # tokenizer
+    tokenizer = get_tokenizer('basic_english')
+    # transform func from text to ind
+    text_transform = lambda x: [vocab[conf.start_token]] + [vocab[token] for token in tokenizer(x)] + [vocab[conf.end_token]]
+    tensor = torch.tensor(text_transform(s))
+    return tensor
+
 def get_ptb(conf):
     """
     Return PennTreeBank iterators
@@ -57,6 +66,27 @@ def get_ptb(conf):
     train, test, valid, vocab = load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_copy, valid_iter_copy, conf)
     return train, test, valid, vocab
 
+def get_wiki103(conf):
+    """
+    Return WikiText 103 iterators
+    """
+    # raw data
+    train_iter, test_iter, valid_iter = WikiText103(split=('train', 'test', 'valid'))
+    train_iter_copy, test_iter_copy, valid_iter_copy = WikiText103(split=('train', 'test', 'valid'))
+    # loader
+    train, test, valid, vocab = load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_copy, valid_iter_copy, conf)
+    return train, test, valid, vocab
+
+def get_wiki2(conf):
+    """
+    Return WikiText 2 iterators
+    """
+    # raw data
+    train_iter, test_iter, valid_iter = WikiText2(split=('train', 'test', 'valid'))
+    train_iter_copy, test_iter_copy, valid_iter_copy = WikiText2(split=('train', 'test', 'valid'))
+    # loader
+    train, test, valid, vocab = load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_copy, valid_iter_copy, conf)
+    return train, test, valid, vocab
 
 if __name__ == '__main__':
     # simple test

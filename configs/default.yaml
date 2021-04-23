@@ -1,17 +1,23 @@
 # default config for everything
 
+# batch size for ptb
 batch_size: 128
-n_vocab: 12000
+# batch size for wiki2
+# batch_size: 8
+
+# ptb is 9900, wiki103 is 226800, wiki2 is 28785
+# n_vocab: 28785
+n_vocab: 9900
+
 epochs: 121
 n_hidden_G: 512
 n_layers_G: 2
 n_hidden_E: 512
 n_layers_E: 1
 n_z: 100
-word_dropout: 0.5
+word_dropout: 0.0
 rec_coef: 7
 lr: 0.0001
-gpu_device: 1
 n_highway_layers: 2
 
 unk_token: '<unk>'

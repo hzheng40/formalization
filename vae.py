@@ -112,7 +112,7 @@ class VAE(nn.Module):
         self.embedding = nn.Embedding(config.n_vocab, config.n_embed)
         self.encoder = Encoder(config)
         self.hidden_to_mu = nn.Linear(2*config.n_hidden_E, config.n_z)
-        self.hidden_to_logvar = nn.Linear(2*config.n_hidden_G, config.n_z)
+        self.hidden_to_logvar = nn.Linear(2*config.n_hidden_E, config.n_z)
         self.generator = Generator(config)
         self.n_z = config.n_z
 

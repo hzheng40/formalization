@@ -57,6 +57,7 @@ def search(conf):
 
     # parameterization
     # TODO: init should follow torch.nn.Linear
+    # should both be from Uniform(-sqrt(k), sqrt(k)), where k = 1/features
     param = ng.p.Dict(
         weight=ng.p.Array(init=np.zeros(conf.n_z)),
         bias=ng.p.Array(init=np.zeros(conf.n_z)))

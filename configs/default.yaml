@@ -32,3 +32,9 @@ seed: 12345
 n_embed: 300
 vector: '6B'
 vocab_vector: 'glove.6B.300d'
+
+# CMA stuff
+num_workers: 1
+budget: 500
+optim_filename: 'data/cma/optim.pkl'
+npz_filename: 'data/cma/log.npz'

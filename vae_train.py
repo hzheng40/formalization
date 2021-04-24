@@ -333,9 +333,9 @@ if __name__ == '__main__':
     if args.to_train:
         train()
     else:
-        # np.random.seed(999)
-        # torch.manual_seed(999)
-        # random.seed(999)
+        np.random.seed(888)
+        torch.manual_seed(888)
+        random.seed(888)
         print('---------Generating---------')
         print('----------------------------')
         generate_sentences(10)

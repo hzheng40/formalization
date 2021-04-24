@@ -144,13 +144,14 @@ class VAE(nn.Module):
         return logit, G_hidden, kld
 
     def encode(self, x):
-        # TODO: wtf
+        # returns the latent distribution given text
         batch_size, n_seq = x.size()
         x = self.embedding(x)
         E_hidden = self.encoder(x)
         mu = self.hidden_to_mu(E_hidden)
         logvar = self.hidden_to_logvar(E_hidden)
-        z = on_cuda(torch.randn([x.size()[0], self.n_z]))
+        # z = on_cuda(torch.randn([x.size()[0], self.n_z]))
         # z = mu + z * torch.exp(0.5*logvar)
         z = mu
+        # return mu, logvar
         return z

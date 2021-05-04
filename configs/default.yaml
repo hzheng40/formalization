@@ -1,23 +1,28 @@
 # default config for everything
 
 # batch size for ptb
-batch_size: 128
+# batch_size: 128
 # batch size for wiki2
 # batch_size: 8
+# batch size for gyafc
+# batch_size: 64
+# batch size for gyafc music
+batch_size: 64
 
-# ptb is 9900, wiki103 is 226800, wiki2 is 28785
+# ptb is 9900, wiki103 is 226800, wiki2 is 28785, gyfac is 23420, gyfac_music is 35440 (too big)
 # n_vocab: 28785
-n_vocab: 9900
+n_vocab: 23420
+# n_vocab: 9900
 
-epochs: 121
+epochs: 160
 n_hidden_G: 512
 n_layers_G: 2
 n_hidden_E: 512
 n_layers_E: 1
 n_z: 100
 word_dropout: 0.0
-rec_coef: 7
-lr: 0.0001
+rec_coef: 1
+lr: 0.001
 n_highway_layers: 2
 
 unk_token: '<unk>'

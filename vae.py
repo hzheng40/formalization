@@ -133,7 +133,8 @@ class VAE(nn.Module):
             # reparam trick: sample z = mu + eps*sigma for back prop
             z = mu + z*torch.exp(0.5*logvar)
             # KL-divergence loss
-            kld = -0.5*torch.sum(logvar-mu.pow(2)-logvar.exp()+1, 1).mean()
+            # kld = -0.5*torch.sum(logvar-mu.pow(2)-logvar.exp()+1, 1).mean()
+            kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         else:
             # training with given text
             kld = None

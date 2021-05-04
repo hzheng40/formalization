@@ -88,6 +88,68 @@ def get_wiki2(conf):
     train, test, valid, vocab = load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_copy, valid_iter_copy, conf)
     return train, test, valid, vocab
 
+def get_gyafc(conf):
+    """
+    Return GYAFC iterators
+    """
+    # train
+    with open('.data/GYAFC_Corpus/Family_Relationships/train/formal') as f:
+        train_iter = f.readlines()
+    with open('.data/GYAFC_Corpus/Family_Relationships/train/informal') as f:
+        train_iter = train_iter + f.readlines()
+
+    # test
+    with open('.data/GYAFC_Corpus/Family_Relationships/test/formal') as f:
+        test_iter = f.readlines()
+    with open('.data/GYAFC_Corpus/Family_Relationships/test/informal') as f:
+        test_iter = test_iter + f.readlines()
+
+    # valid
+    with open('.data/GYAFC_Corpus/Family_Relationships/tune/formal') as f:
+        valid_iter = f.readlines()
+    with open('.data/GYAFC_Corpus/Family_Relationships/tune/informal') as f:
+        valid_iter = valid_iter + f.readlines()
+
+    import copy
+    train_iter_copy = copy.deepcopy(train_iter)
+    test_iter_copy = copy.deepcopy(test_iter)
+    valid_iter_copy = copy.deepcopy(valid_iter)
+
+    # loader
+    train, test, valid, vocab = load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_copy, valid_iter_copy, conf)
+    return train, test, valid, vocab
+
+def get_gyafc_music(conf):
+    """
+    Return GYAFC iterators
+    """
+    # train
+    with open('.data/GYAFC_Corpus/Entertainment_Music/train/formal') as f:
+        train_iter = f.readlines()
+    with open('.data/GYAFC_Corpus/Entertainment_Music/train/informal') as f:
+        train_iter = train_iter + f.readlines()
+
+    # test
+    with open('.data/GYAFC_Corpus/Entertainment_Music/test/formal') as f:
+        test_iter = f.readlines()
+    with open('.data/GYAFC_Corpus/Entertainment_Music/test/informal') as f:
+        test_iter = test_iter + f.readlines()
+
+    # valid
+    with open('.data/GYAFC_Corpus/Entertainment_Music/tune/formal') as f:
+        valid_iter = f.readlines()
+    with open('.data/GYAFC_Corpus/Entertainment_Music/tune/informal') as f:
+        valid_iter = valid_iter + f.readlines()
+
+    import copy
+    train_iter_copy = copy.deepcopy(train_iter)
+    test_iter_copy = copy.deepcopy(test_iter)
+    valid_iter_copy = copy.deepcopy(valid_iter)
+
+    # loader
+    train, test, valid, vocab = load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_copy, valid_iter_copy, conf)
+    return train, test, valid, vocab
+
 if __name__ == '__main__':
     # simple test
     import yaml
@@ -95,4 +157,4 @@ if __name__ == '__main__':
     with open('configs/default.yaml') as file:
         conf_dict = yaml.load(file, Loader=yaml.FullLoader)
     conf = Namespace(**conf_dict)
-    train, test, valid, vocab = get_ptb(conf)
+    train, test, valid, vocab = get_gyafc(conf)

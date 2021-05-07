@@ -151,8 +151,4 @@ class VAE(nn.Module):
         E_hidden = self.encoder(x)
         mu = self.hidden_to_mu(E_hidden)
         logvar = self.hidden_to_logvar(E_hidden)
-        # z = on_cuda(torch.randn([x.size()[0], self.n_z]))
-        # z = mu + z * torch.exp(0.5*logvar)
-        z = mu
-        # return mu, logvar
-        return z
+        return mu, logvar

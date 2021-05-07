@@ -13,6 +13,7 @@ import argparse
 from argparse import Namespace
 import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from torch.distributions import MultivariateNormal
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='configs/default.yaml')
@@ -237,8 +238,8 @@ def generate_sentences(n_examples):
 
     for i in range(n_examples):
         z = on_cuda(torch.randn([1, conf.n_z]))
-        h_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
-        c_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
+        h_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
+        c_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
         G_hidden = (h_0, c_0)
         # 2 is the index of start token in vocab stoi
         G_inp = torch.LongTensor(1, 1).fill_(vocab.stoi[conf.start_token])
@@ -269,8 +270,8 @@ def interpolate_existing_sentences(s1, s2, num=10):
     s2_tensor = str_to_tensor(s2, vocab, conf)
     s1_tensor = on_cuda(s1_tensor.unsqueeze(0))
     s2_tensor = on_cuda(s2_tensor.unsqueeze(0))
-    z1 = vae.encode(s1_tensor)
-    z2 = vae.encode(s2_tensor)
+    z1, _ = vae.encode(s1_tensor)
+    z2, _ = vae.encode(s2_tensor)
 
     # interpolate
     int_z = torch.lerp(z1, z2, on_cuda(torch.linspace(0.0, 1.0, num).unsqueeze(1)))
@@ -278,8 +279,8 @@ def interpolate_existing_sentences(s1, s2, num=10):
     # z to strings
     for i in range(int_z.size()[0]):
         z = int_z[i, :].unsqueeze(0)
-        h_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
-        c_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
+        h_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
+        c_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
         G_hidden = (h_0, c_0)
         G_inp = torch.LongTensor(1, 1).fill_(vocab.stoi[conf.start_token])
         G_inp = on_cuda(G_inp)
@@ -307,10 +308,13 @@ def sampling_around_existing_sentence(s1, num=10):
     s1_tensor = str_to_tensor(s1, vocab, conf)
     s1_tensor = on_cuda(s1_tensor.unsqueeze(0))
 
+    mu, logvar = vae.encode(s1_tensor)
+    mvn = MultivariateNormal(mu, scale_tril=torch.diag(torch.exp(logvar[0])))
+
     for i in range(num):
-        z = vae.encode(s1_tensor)
-        h_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
-        c_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
+        z = mvn.sample()
+        h_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
+        c_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
         G_hidden = (h_0, c_0)
         G_inp = torch.LongTensor(1, 1).fill_(vocab.stoi[conf.start_token])
         G_inp = on_cuda(G_inp)
@@ -342,8 +346,8 @@ def interpolate_sentences(num=10):
     # zs to strings
     for i in range(int_z.size()[0]):
         z = int_z[i, :].unsqueeze(0)
-        h_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
-        c_0 = on_cuda(torch.zeros(conf.n_layers_G, 1, conf.n_hidden_G))
+        h_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
+        c_0 = on_cuda(torch.zeros(2*conf.n_layers_E, 1, conf.n_hidden_G))
         G_hidden = (h_0, c_0)
         G_inp = torch.LongTensor(1, 1).fill_(vocab.stoi[conf.start_token])
         G_inp = on_cuda(G_inp)
@@ -365,9 +369,9 @@ if __name__ == '__main__':
         # np.random.seed(123)
         # torch.manual_seed(123)
         # random.seed(123)
-        print('---------Generating---------')
-        print('----------------------------')
-        generate_sentences(100)
+        # print('---------Generating---------')
+        # print('----------------------------')
+        # generate_sentences(100)
         print('----------Sampling----------')
         print('----------------------------')
         print('------Original Sentence-----')
@@ -375,15 +379,15 @@ if __name__ == '__main__':
         print(s)
         print('----------------------------')
         sampling_around_existing_sentence(s, num=50)
-        print('---Interpolating Random ----')
-        print('----------------------------')
-        interpolate_sentences(num=10)
-        print('-------Interpolating--------')
-        print('----------------------------')
-        print('From: ')
-        s1 = "i want to talk to you"
-        print(s1)
-        s2 = "she did n't  want to be with him"
-        interpolate_existing_sentences(s1, s2)
-        print('TO: ')
-        print(s2)
+        # print('---Interpolating Random ----')
+        # print('----------------------------')
+        # interpolate_sentences(num=10)
+        # print('-------Interpolating--------')
+        # print('----------------------------')
+        # print('From: ')
+        # s1 = "i want to talk to you"
+        # print(s1)
+        # s2 = "she did n't  want to be with him"
+        # interpolate_existing_sentences(s1, s2)
+        # print('TO: ')
+        # print(s2)

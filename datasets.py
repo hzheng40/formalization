@@ -47,6 +47,27 @@ def load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_c
     valid_dataloader = DataLoader(list(valid_iter_copy), batch_size=conf.batch_size, shuffle=True, collate_fn=collate_batch)
     return train_dataloader, test_dataloader, valid_dataloader, vocab
 
+def load_dataset_single(orig_iter, conf, vocab):
+    # only the iterators, vocab based on vocab used for training
+    tokenizer = get_tokenizer('basic_english')
+    # transform func from text to ind
+    text_transform = lambda x: [vocab[conf.start_token]] + [vocab[token] for token in tokenizer(x)] + [vocab[conf.end_token]]
+
+    # collate func for dataloader
+    def collate_batch(batch):
+        text_list = []
+        for text in batch:
+            processed_text = torch.tensor(text_transform(text))
+            text_list.append(processed_text)
+
+        # padding is 3 because index of pad special token is index 3 in vocab
+        return pad_sequence(text_list, padding_value=3.0)
+
+    # get batch iterator
+    dataloader = DataLoader(list(orig_iter), batch_size=conf.cma_batch_size, shuffle=True, collate_fn=collate_batch)
+
+    return dataloader
+
 def str_to_tensor(s, vocab, conf):
     # tokenizer
     tokenizer = get_tokenizer('basic_english')
@@ -118,6 +139,19 @@ def get_gyafc(conf):
     # loader
     train, test, valid, vocab = load_dataset(train_iter, test_iter, valid_iter, train_iter_copy, test_iter_copy, valid_iter_copy, conf)
     return train, test, valid, vocab
+
+def get_formality_set(conf, vocab):
+    """
+    Return formality iterators for CMA
+    Uses test set
+    """
+
+    with open('.data/GYAFC_Corpus/Family_Relationships/test/informal') as f:
+        test_iter = f.readlines()
+
+    # loader
+    test = load_dataset_single(test_iter, conf, vocab)
+    return test
 
 def get_gyafc_music(conf):
     """

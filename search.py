@@ -2,18 +2,24 @@ import nevergrad as ng
 import numpy as np
 import ray
 import torch
+from torch.distributions import MultivariateNormal
+import torch.nn.functional as F
+from nltk.translate.bleu_score import sentence_bleu
+from nltk.tokenize import word_tokenize
 
 from vae import VAE
-from vae_train import create_vae
 from style_transfer import LinearShift
 from utils import on_cuda
-from datasets import get_ptb
+from datasets import get_ptb, get_gyafc, str_to_tensor, get_formality_set
+from evals import FeatureExtractor
 
+import yaml
 import argparse
+import pickle
 from argparse import Namespace
 from tqdm import tqdm
 
-@ray.remote
+@ray.remote(num_gpus=1)
 class Worker:
     """
     Ray remote worker that:
@@ -23,20 +29,107 @@ class Worker:
         4. decodes output then get score
     """
     def __init__(self, conf):
-        # create vae
-        _, _, _, self.vocab = get_ptb(conf)
-        self.vae = create_vae(conf, self.vocab)
+        # create vae, load weights
+        _, _, _, self.vocab = get_gyafc(conf)
+        self.vae, _ = create_vae(conf, self.vocab)
+        ckpt = torch.load(conf.vae_model_path)
+        self.vae.load_state_dict(ckpt['vae_dict'])
+        self.vae.eval()
+        del(ckpt)
+
         # create linear shift
-        self.linear_shift = LinearShift(conf)
+        self.linear_shift = on_cuda(LinearShift(conf))
+
         # save conf
         self.conf = conf
         # init
         self.score = 0
         self.eval_done = False
 
+        # load dataset
+        self.test = get_formality_set(conf, self.vocab)
+
+        # scoring
+        self.extractor = FeatureExtractor(conf.w2v_path, conf.corpus_dict_path)
+        self.pt16_ridge = pickle.load(open(conf.pt16_path, 'rb'))
+
     def eval(self, work):
         # evaluates quality of given parameters
-        pass
+        # copy weights to linear shift
+        mu_weight = work['mu_weight']
+        mu_bias = work['mu_bias']
+        var_weight = work['var_weight']
+        var_bias = work['var_bias']
+
+        with torch.no_grad():
+            self.linear_shift.linear_mu[0].weight.copy_(torch.from_numpy(mu_weight).float())
+            self.linear_shift.linear_mu[0].bias.copy_(torch.from_numpy(mu_bias).float())
+            self.linear_shift.linear_logvar[0].weight.copy_(torch.from_numpy(var_weight).float())
+            self.linear_shift.linear_logvar[0].bias.copy_(torch.from_numpy(var_bias).float())
+
+        batch_scores = []
+
+        for batch in self.test:
+            current_batch_scores = []
+            current_batch_strings = []
+            batch = on_cuda(batch.T)
+            # encode batch to mu and logvars
+            mu, logvar = self.vae.encode(batch)
+
+            print(mu.shape)
+            print(logvar.shape)
+
+            # put mu and logvars pass linear shift
+            new_mu, new_logvar = self.linear_shift(mu, logvar)
+
+            # loop through each batch
+            for i in range(new_mu.size()[0]):
+                # create distribution
+                mvn = MultivariateNormal(new_mu[i, :], scale_tril=torch.diag(torch.exp(new_logvar[i, :])))
+
+                # sample and decode
+                z = mvn.sample().unsqueeze(0)
+
+                h_0 = on_cuda(torch.zeros(self.conf.n_layers_G, self.conf.cma_batch_size, self.conf.n_hidden_G))
+                c_0 = on_cuda(torch.zeros(self.conf.n_layers_G, self.conf.cma_batch_size, self.conf.n_hidden_G))
+                G_hidden = (h_0, c_0)
+                G_inp = torch.LongTensor(1, 1).fill_(self.vocab.stoi[self.conf.start_token])
+                string = ''
+                while G_inp[0][0].item() != self.vocab.stoi[self.conf.end_token]:
+                    with torch.autograd.no_grad():
+                        logit, G_hidden, _ = self.vae(None, G_inp, z, G_hidden)
+                    probs = F.softmax(logit[0], dim=1)
+                    G_inp = torch.multinomial(probs, 1)
+                    if G_inp[0][0].item() != self.vocab.stoi[self.conf.end_token]:
+                        string += self.vocab.itos[G_inp[0][0].item()] + ' '
+                current_batch_strings.append(string.encode('utf-8'))
+
+            # score on strings
+            for i, sent in enumerate(current_batch_strings):
+                # PT16 formality
+                pt16 = self.get_pt16_score(sent)
+                # bleu with original
+                # TODO: how to get orignal sentence?
+                bleu = self.get_bleu_with_orig(?, sent)
+                current_batch_scores.append(self.conf.pt16_weight*pt16 + self.conf.bleu_weight*bleu)
+            batch_scores.append(current_batch_scores)
+
+        # TODO: process all scores to a single score?
+        score = 0 # TODO
+        self.score = score
+        self.eval_done = True
+
+    def get_pt16_score(self, s):
+        # Returns the pt16 formality score on a sentence
+        feature = self.extractor.extract_annotations(s)
+        parse_tree = self.extractor.extract_parse(s)
+        feature_vec = self.extractor.extract_features_pt16(s, feature, parse_tree)
+        return self.pt16_ridge.predict(feature_vec)
+
+    def get_bleu_with_orig(self, orig, new):
+        orig = word_tokenize(orig)
+        new = word_tokenize(new)
+        return sentence_bleu(orig, new)
 
     def collect(self):
         # collect function for ray
@@ -44,6 +137,13 @@ class Worker:
             continue
         return self.score
 
+# create new vae model
+def create_vae(conf, vocab):
+    vae = VAE(conf)
+    vae.embedding.weight.data.copy_(vocab.vectors)
+    vae = on_cuda(vae)
+    trainer_vae = torch.optim.Adam(vae.parameters(), lr=conf.lr)
+    return vae, trainer_vae
 
 def search(conf):
     """
@@ -56,11 +156,13 @@ def search(conf):
     num_workers = conf.num_workers
 
     # parameterization
-    # TODO: init should follow torch.nn.Linear
-    # should both be from Uniform(-sqrt(k), sqrt(k)), where k = 1/features
+    uniform_scale = np.sqrt(1/conf.n_z)
     param = ng.p.Dict(
-        weight=ng.p.Array(init=np.zeros(conf.n_z)),
-        bias=ng.p.Array(init=np.zeros(conf.n_z)))
+        mu_weight=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=(conf.n_z, conf.n_z))),
+        mu_bias=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=conf.n_z)),
+        var_weight=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=(conf.n_z, conf.n_z))),
+        var_bias=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=conf.n_z)))
+
     # optimizer
     optim = ng.optimizers.registry['CMA'](parametrization=param, budget=conf.budget, num_workers=num_workers)
     # seeding
@@ -101,3 +203,13 @@ def search(conf):
                         scores=np.array(all_scores),
                         weights=None,
                         bias=None)
+
+if __name__ == '__main__':
+    with open('configs/default.yaml') as file:
+        conf_dict = yaml.load(file, Loader=yaml.FullLoader)
+    conf = Namespace(**conf_dict)
+    print(conf)
+    np.random.seed(conf.seed)
+    torch.manual_seed(conf.seed)
+    ray.init()
+    search(conf)

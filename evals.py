@@ -224,7 +224,7 @@ class FeatureExtractor:
                 new_dict[item] = count
         return new_dict
 
-    def extract_features(self, sentence, sent_annotations, parse_tree):
+    def extract_features_pt16(self, sentence, sent_annotations, parse_tree):
         words = sentence.split()
         feature_set = []
         #case features
@@ -329,17 +329,18 @@ if __name__ == '__main__':
     # formal example
     s1 = "Pelosi's office steps into fight between Republican leaders Cheney and McCarthy"
     # informal example
-    s2 = "ummm his bizzy goin out with me lol"
+    # s2 = "ummm his bizzy goin out with me lol"
+    s2 = "if you have children , stay with them !"
 
 
     feat1 = extractor.extract_annotations(s1)
     parse_tree_1 = extractor.extract_parse(s1)
-    feature_vec_1 = extractor.extract_features(s1, feat1, parse_tree_1)
+    feature_vec_1 = extractor.extract_features_pt16(s1, feat1, parse_tree_1)
     score1 = ridge.predict(feature_vec_1)
 
     feat2 = extractor.extract_annotations(s2)
     parse_tree_2 = extractor.extract_parse(s2)
-    feature_vec_2 = extractor.extract_features(s2, feat2, parse_tree_2)
+    feature_vec_2 = extractor.extract_features_pt16(s2, feat2, parse_tree_2)
     score2 = ridge.predict(feature_vec_2)
 
     print('Sentence 1:')

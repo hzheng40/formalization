@@ -5,8 +5,6 @@
 # batch size for wiki2
 # batch_size: 8
 # batch size for gyafc
-# batch_size: 64
-# batch size for gyafc music
 batch_size: 64
 
 # ptb is 9900, wiki103 is 226800, wiki2 is 28785, gyfac is 23420, gyfac_music is 35440 (too big)
@@ -38,8 +36,18 @@ n_embed: 300
 vector: '6B'
 vocab_vector: 'glove.6B.300d'
 
+# linear style transfer
+n_shift_layers: 1
+
 # CMA stuff
+cma_batch_size: 128
 num_workers: 1
 budget: 500
+vae_model_path: 'data/saved_models/vae_model_gyafc_weightfix3_nodropout_25000crossover_long_0.0005k.pt'
 optim_filename: 'data/cma/optim.pkl'
 npz_filename: 'data/cma/log.npz'
+w2v_path: 'data/saved_models/GoogleNews-vectors-negative300.bin'
+corpus_dict_path: 'data/saved_models/corpus_dict.pkl'
+pt16_path: data/saved_models/pt16.pkl
+pt16_weight: 1
+bleu_weight: 10

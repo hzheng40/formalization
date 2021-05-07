@@ -16,10 +16,6 @@ class LinearShift(nn.Module):
 
     def forward(self, mu, logvar):
         for layer in range(self.n_layers):
-            mu = self.linear[layer](mu)
-            logvar = self.linear[layer](logvar)
+            mu = self.linear_mu[layer](mu)
+            logvar = self.linear_logvar[layer](logvar)
         return mu, logvar
-
-    def load_weights(self, weights, bias):
-        # loads parameters for the linear network from numpy arrays
-        pass

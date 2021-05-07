@@ -153,6 +153,18 @@ def get_formality_set(conf, vocab):
     test = load_dataset_single(test_iter, conf, vocab)
     return test
 
+def get_informal_test_set(conf, vocab):
+    """
+    Return small informal set for testing
+    """
+
+    with open('.data/GYAFC_Corpus/Family_Relationships/test/informal.ref0') as f:
+        test_iter = f.readlines()
+
+    # loader
+    test = load_dataset_single(test_iter, conf, vocab)
+    return test
+
 def get_gyafc_music(conf):
     """
     Return GYAFC iterators

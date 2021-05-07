@@ -255,7 +255,7 @@ def generate_sentences(n_examples):
         # print(string.encode('utf-8'))
         print(string)
 
-def interpolate_existing_sentences(s1, s2, num=10):
+def interpolate_existing_sentences(s1, s2, num=5):
     # NOTE: vocab based on datasets
     train_iter, test_iter, valid_iter, vocab = get_gyafc(conf)
 
@@ -366,28 +366,28 @@ if __name__ == '__main__':
     if args.to_train:
         train()
     else:
-        # np.random.seed(123)
-        # torch.manual_seed(123)
-        # random.seed(123)
-        # print('---------Generating---------')
-        # print('----------------------------')
-        # generate_sentences(100)
+        np.random.seed(12)
+        torch.manual_seed(12)
+        random.seed(12)
+        print('---------Generating---------')
+        print('----------------------------')
+        generate_sentences(100)
         print('----------Sampling----------')
         print('----------------------------')
         print('------Original Sentence-----')
-        s = 'i went to the kitchen'
+        s = 'i do not understand you .'
         print(s)
         print('----------------------------')
         sampling_around_existing_sentence(s, num=50)
-        # print('---Interpolating Random ----')
-        # print('----------------------------')
-        # interpolate_sentences(num=10)
-        # print('-------Interpolating--------')
-        # print('----------------------------')
-        # print('From: ')
-        # s1 = "i want to talk to you"
-        # print(s1)
-        # s2 = "she did n't  want to be with him"
-        # interpolate_existing_sentences(s1, s2)
-        # print('TO: ')
-        # print(s2)
+        print('---Interpolating Random ----')
+        print('----------------------------')
+        interpolate_sentences(num=10)
+        print('-------Interpolating--------')
+        print('----------------------------')
+        print('From: ')
+        s1 = "i want to talk to you"
+        print(s1)
+        s2 = "she did n't  want to be with him"
+        interpolate_existing_sentences(s1, s2)
+        print('TO: ')
+        print(s2)

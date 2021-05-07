@@ -40,10 +40,11 @@ vocab_vector: 'glove.6B.300d'
 n_shift_layers: 1
 
 # CMA stuff
-cma_batch_size: 128
+cma_batch_size: 512
 num_workers: 1
-budget: 500
+budget: 100
 vae_model_path: 'data/saved_models/vae_model_gyafc_weightfix3_nodropout_25000crossover_long_0.0005k.pt'
+linear_model_save_path: 'data/saved_models/linear.pt'
 optim_filename: 'data/cma/optim.pkl'
 npz_filename: 'data/cma/log.npz'
 w2v_path: 'data/saved_models/GoogleNews-vectors-negative300.bin'

@@ -70,14 +70,12 @@ class Worker:
         batch_scores = []
 
         for batch in self.test:
+            print('New Batch')
             current_batch_scores = []
             current_batch_strings = []
             batch = on_cuda(batch.T)
             # encode batch to mu and logvars
             mu, logvar = self.vae.encode(batch)
-
-            print(mu.shape)
-            print(logvar.shape)
 
             # put mu and logvars pass linear shift
             new_mu, new_logvar = self.linear_shift(mu, logvar)
@@ -90,11 +88,13 @@ class Worker:
                 # sample and decode
                 z = mvn.sample().unsqueeze(0)
 
-                h_0 = on_cuda(torch.zeros(self.conf.n_layers_G, self.conf.cma_batch_size, self.conf.n_hidden_G))
-                c_0 = on_cuda(torch.zeros(self.conf.n_layers_G, self.conf.cma_batch_size, self.conf.n_hidden_G))
+                h_0 = on_cuda(torch.zeros(self.conf.n_layers_G, 1, self.conf.n_hidden_G))
+                c_0 = on_cuda(torch.zeros(self.conf.n_layers_G, 1, self.conf.n_hidden_G))
                 G_hidden = (h_0, c_0)
                 G_inp = torch.LongTensor(1, 1).fill_(self.vocab.stoi[self.conf.start_token])
+                G_inp = on_cuda(G_inp)
                 string = ''
+                length = 0
                 while G_inp[0][0].item() != self.vocab.stoi[self.conf.end_token]:
                     with torch.autograd.no_grad():
                         logit, G_hidden, _ = self.vae(None, G_inp, z, G_hidden)
@@ -102,20 +102,28 @@ class Worker:
                     G_inp = torch.multinomial(probs, 1)
                     if G_inp[0][0].item() != self.vocab.stoi[self.conf.end_token]:
                         string += self.vocab.itos[G_inp[0][0].item()] + ' '
-                current_batch_strings.append(string.encode('utf-8'))
+                        length += 1
+                    if length >= 20:
+                        break
+                current_batch_strings.append(string)
 
+            print('Decode on current batch done, scoring now')
             # score on strings
             for i, sent in enumerate(current_batch_strings):
                 # PT16 formality
                 pt16 = self.get_pt16_score(sent)
                 # bleu with original
                 # TODO: how to get orignal sentence?
-                bleu = self.get_bleu_with_orig(?, sent)
-                current_batch_scores.append(self.conf.pt16_weight*pt16 + self.conf.bleu_weight*bleu)
-            batch_scores.append(current_batch_scores)
+                # bleu = self.get_bleu_with_orig(?, sent)
+                # current_batch_scores.append(self.conf.pt16_weight*pt16 + self.conf.bleu_weight*bleu)
+                current_batch_scores.append(pt16)
+
+            print('Current batch average score:', np.mean(current_batch_scores))
+            batch_scores.append(np.mean(current_batch_scores))
 
         # TODO: process all scores to a single score?
-        score = 0 # TODO
+        # score = 0 # TODO
+        score = -np.mean(batch_scores)
         self.score = score
         self.eval_done = True
 
@@ -156,12 +164,19 @@ def search(conf):
     num_workers = conf.num_workers
 
     # parameterization
-    uniform_scale = np.sqrt(1/conf.n_z)
+    # uniform_scale = np.sqrt(1/conf.n_z)
+    # param = ng.p.Dict(
+    #     mu_weight=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=(conf.n_z, conf.n_z))),
+    #     mu_bias=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=conf.n_z)),
+    #     var_weight=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=(conf.n_z, conf.n_z))),
+    #     var_bias=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=conf.n_z)))
+
+    # need to start from no change
     param = ng.p.Dict(
-        mu_weight=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=(conf.n_z, conf.n_z))),
-        mu_bias=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=conf.n_z)),
-        var_weight=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=(conf.n_z, conf.n_z))),
-        var_bias=ng.p.Array(init=np.random.uniform(low=-uniform_scale, high=uniform_scale, size=conf.n_z)))
+        mu_weight=ng.p.Array(init=np.ones((conf.n_z, conf.n_z))),
+        mu_bias=ng.p.Array(init=np.zeros((conf.n_z))),
+        var_weight=ng.p.Array(init=np.ones((conf.n_z, conf.n_z))),
+        var_bias=ng.p.Array(init=np.zeros((conf.n_z))))
 
     # optimizer
     optim = ng.optimizers.registry['CMA'](parametrization=param, budget=conf.budget, num_workers=num_workers)
@@ -196,13 +211,14 @@ def search(conf):
         all_scores.extend(results)
         all_individuals.extend(individuals)
 
-    # book keeping
-    # TODO: change what to save
-    optim.dump(conf.optim_filename)
-    np.savez_compressed(conf.npz_filename,
-                        scores=np.array(all_scores),
-                        weights=None,
-                        bias=None)
+        # book keeping
+        # TODO: change what to save
+        optim.dump(conf.optim_filename)
+        np.savez_compressed(conf.npz_filename,
+                            scores=np.array(all_scores),
+                            individuals=all_individuals)
+
+    return optim, all_scores, all_individuals
 
 if __name__ == '__main__':
     with open('configs/default.yaml') as file:
@@ -212,4 +228,18 @@ if __name__ == '__main__':
     np.random.seed(conf.seed)
     torch.manual_seed(conf.seed)
     ray.init()
-    search(conf)
+    optim, all_scores, all_individuals = search(conf)
+    best_params = optim.recommend()
+    best_linear_shift = on_cuda(LinearShift(conf))
+    mu_weight = best_params['mu_weight']
+    mu_bias = best_params['mu_bias']
+    var_weight = best_params['var_weight']
+    var_bias = best_params['var_bias']
+
+    with torch.no_grad():
+        best_linear_shift.linear_mu[0].weight.copy_(torch.from_numpy(mu_weight.value).float())
+        best_linear_shift.linear_mu[0].bias.copy_(torch.from_numpy(mu_bias.value).float())
+        best_linear_shift.linear_logvar[0].weight.copy_(torch.from_numpy(var_weight.value).float())
+        best_linear_shift.linear_logvar[0].bias.copy_(torch.from_numpy(var_bias.value).float())
+
+    torch.save(best_linear_shift.state_dict(), conf.linear_model_save_path)

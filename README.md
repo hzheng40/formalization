@@ -60,6 +60,9 @@ tqdm, for showing progress bars
 pip3 install tqdm
 ```
 
+## GYAFC Corpus
+Please follow the instructions in [https://github.com/raosudha89/GYAFC-corpus](https://github.com/raosudha89/GYAFC-corpus) to request access to the GYAFC-corpus. After extracting the files, create a ```.data``` directory and put the corpus in as ```.data/GYAFC_Corpus```.
+
 ## Large models
 
 Download the models from [https://drive.google.com/drive/folders/1tfEzpF3y3ZIlMiB6UnnXSSE3YrrcV2Vc?usp=sharing](https://drive.google.com/drive/folders/1tfEzpF3y3ZIlMiB6UnnXSSE3YrrcV2Vc?usp=sharing) and put both of the files in the directory ```data/saved_models```.

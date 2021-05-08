@@ -243,3 +243,11 @@ if __name__ == '__main__':
         best_linear_shift.linear_logvar[0].bias.copy_(torch.from_numpy(var_bias.value).float())
 
     torch.save(best_linear_shift.state_dict(), conf.linear_model_save_path)
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+sns.set_context('poster')
+plt.plot([-num for num in all_scores])
+plt.xlabel('Iterations')
+plt.ylabel('Score (Higher is more formal)')
+plt.show()

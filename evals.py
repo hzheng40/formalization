@@ -326,27 +326,16 @@ if __name__ == '__main__':
     extractor = FeatureExtractor('data/saved_models/GoogleNews-vectors-negative300.bin', 'data/saved_models/corpus_dict.pkl')
     ridge = pickle.load(open('data/saved_models/pt16.pkl', 'rb'))
 
-    # formal example
-    s1 = "Pelosi's office steps into fight between Republican leaders Cheney and McCarthy"
-    # informal example
-    # s2 = "ummm his bizzy goin out with me lol"
-    s2 = "if you have children , stay with them !"
+    # test sentences
+    sentences = ["Pelosi's office steps into fight between Republican leaders Cheney and McCarthy", "That is a culture that has things right.", "if you have children , stay with them !", "Sounds like a rhetorical question :)"]
 
+    for s in sentences:
+        feat = extractor.extract_annotations(s)
+        tree = extractor.extract_parse(s)
+        feat_vec = extractor.extract_features_pt16(s, feat, tree)
+        score = ridge.predict(feat_vec)
 
-    feat1 = extractor.extract_annotations(s1)
-    parse_tree_1 = extractor.extract_parse(s1)
-    feature_vec_1 = extractor.extract_features_pt16(s1, feat1, parse_tree_1)
-    score1 = ridge.predict(feature_vec_1)
-
-    feat2 = extractor.extract_annotations(s2)
-    parse_tree_2 = extractor.extract_parse(s2)
-    feature_vec_2 = extractor.extract_features_pt16(s2, feat2, parse_tree_2)
-    score2 = ridge.predict(feature_vec_2)
-
-    print('Sentence 1:')
-    print(s1)
-    print('Formality score: ' + str(score1))
-    print('---------------------------------')
-    print('Sentence 2:')
-    print(s2)
-    print('Formality score: ' + str(score2))
+        print('Sentence:')
+        print(s)
+        print('Formality score: ' + str(score))
+        print('---------------------------------')

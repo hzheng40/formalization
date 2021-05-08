@@ -385,9 +385,9 @@ if __name__ == '__main__':
         print('-------Interpolating--------')
         print('----------------------------')
         print('From: ')
-        s1 = "i want to talk to you"
+        s1 = "does he have a favorite sports team ?"
         print(s1)
-        s2 = "she did n't  want to be with him"
+        s2 = "you can attend you class with her if you would like ."
         interpolate_existing_sentences(s1, s2)
         print('TO: ')
         print(s2)

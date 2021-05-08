@@ -1,5 +1,6 @@
-# formalization
-Final project of CIS 620: Text Formalization with Gradient-free Optimization
+# Text Formalization with Gradient Free Optimization in Latent Space
+Final project of CIS 620: Text Formalization with Gradient Free Optimization in Latent Space
+Authors: Hongrui Zheng, Kailing Zheng
 
 ## Dependencies
 
@@ -58,3 +59,37 @@ tqdm, for showing progress bars
 ```bash
 pip3 install tqdm
 ```
+
+## Large models
+
+Download the models from [https://drive.google.com/drive/folders/1tfEzpF3y3ZIlMiB6UnnXSSE3YrrcV2Vc?usp=sharing](https://drive.google.com/drive/folders/1tfEzpF3y3ZIlMiB6UnnXSSE3YrrcV2Vc?usp=sharing) and put both of the files in the directory ```data/saved_models```.
+
+## Experiments
+
+### VAE
+To run the experiments involving the VAE with the pre-trained model, run:
+```bash
+$ python3 vae_train.py --to_train false
+```
+To retrain the model, you can run the above line without the ```to_train``` argument. You can check the progress of training with tensorboard in another terminal by running
+```bash
+$ tensorboard --logdir data/tensorboard_log/vae_model_gyafc_weightfix3_nodropout_25000crossover_long_0.0005k/
+```
+
+### Formality predictor
+To run examples with the formality predictor, run:
+```bash
+$ python3 evals.py
+```
+### Gradient free optimization
+To run the search, run:
+```bash
+$ python3 search.py
+```
+
+### Text style transfer
+To test the full framework of formalization, run:
+```bash
+$ python3 test_transfer.py
+```
+The output of the transfer will be at ```data/test_output.ref0```. As a reference, the input of the transfer will be at ```.data/GYAFC_Corpus/Family_Relationships/test/informal.ref0```
